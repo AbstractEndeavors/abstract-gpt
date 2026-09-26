@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+[project]
+name = "abstract-gpt"
+version = "0.1.6"
+description = "Codex login and session management for the abstract toolserver"
+readme = "README.md"
+requires-python = ">=3.11"
+authors = [{name = "jrputkey"}]
+dependencies = ["prompt_toolkit>=3.0", "abstract-claude>=0.1.30"]
+[project.optional-dependencies]
+mcp = []
+serve = ["abstract-claude>=0.1.43"]
+[project.scripts]
+abstract-gpt = "abstract_gpt.cli:main"
+[tool.setuptools.packages.find]
+where = ["src"]
+[tool.pypit]
+github_owner = "hugpy"
+github_push = true
+
+[tool.setuptools.package-data]
+abstract_gpt = ["MCT-LICENSE.txt", "SHARED-CONSOLE.md"]
