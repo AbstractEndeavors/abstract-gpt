@@ -103,6 +103,13 @@ def set_model(default_model=None):
     return {"ok": True, "default_model": default_model}
 
 
+def set_comms(enabled=True):
+    cfg = read_json(root() / "config.json")
+    cfg["comms_enabled"] = bool(enabled)
+    write(root() / "config.json", json.dumps(cfg, indent=2) + "\n")
+    return {"ok": True, "comms_enabled": bool(enabled)}
+
+
 def save_template():
     """Save config.toml only, privately; auth and transcripts are never copied."""
     source = codex_home() / "config.toml"
@@ -193,7 +200,13 @@ def login_poll():
 def launch(args, execute=False):
     """New conversation, same refreshable credential store; exec is ephemeral."""
     cfg = read_json(root() / "config.json")
+    comms_enabled = cfg.get("comms_enabled", True)
+    if comms_enabled:
+        from .comms import ensure_hook
+        ensure_hook()
     command = [binary(), *toolserver_args()]
+    if comms_enabled and "--dangerously-bypass-hook-trust" not in args:
+        command += ["--dangerously-bypass-hook-trust"]
     if execute:
         command += ["exec", "--ephemeral"]
     if cfg.get("default_model") and not any(

@@ -32,7 +32,7 @@ def main():
     parser = argparse.ArgumentParser(description="Codex login and session manager")
     sub = parser.add_subparsers(dest="command", required=True)
     for name in ("init", "state", "oauth-status", "oauth-solution", "login-start",
-                 "login-poll", "save-template", "restore", "mcp"):
+                 "login-poll", "save-template", "restore", "mcp", "comms", "comms-hook"):
         sub.add_parser(name)
     sub.add_parser("mct", help="MCT pointer-exchange chat using Codex")
     login = sub.add_parser("login")
@@ -40,6 +40,7 @@ def main():
     methods.add_argument("--browser", action="store_true")
     methods.add_argument("--with-api-key", action="store_true")
     sub.add_parser("set-model").add_argument("model", nargs="?")
+    sub.add_parser("set-comms").add_argument("state", choices=("on", "off"))
     serve = sub.add_parser("serve", help="Run the shared Claude/GPT console (requires the serve extra)")
     serve.add_argument("--host", default=None)
     serve.add_argument("--port", type=int, default=None)
@@ -63,9 +64,17 @@ def main():
             except ImportError:
                 parser.error("Install abstract-gpt[mcp] to use the toolserver MCP bridge")
             return bridge() or 0
-        if opts.command == "set-model":
+        if opts.command == "comms-hook":
+            from .comms import session_start_hook
+            return session_start_hook()
+        if opts.command == "comms":
+            from .comms import current
+            result = current()
+        elif opts.command == "set-comms":
+            result = actions.set_comms(opts.state == "on")
+        elif opts.command == "set-model":
             result = actions.set_model(opts.model)
-        else:
+        elif opts.command not in ("comms", "set-comms"):
             names = {"init": "init_root", "state": "build_state", "oauth-status": "auth_status",
                      "oauth-solution": "auth_solution"}
             result = getattr(actions, names.get(opts.command, opts.command.replace("-", "_")))()

@@ -73,6 +73,22 @@ Codex command-line options. No `codex mcp add` or `~/.codex/config.toml` entry i
 needed. The bridge honors `TOOLSERVER_URL` and existing Hugpy operator
 credentials. The `mcp` install extra remains as a compatibility alias.
 
+## Automatic comms channel
+
+`abstract-gpt launch` and `abstract-gpt exec` install a package-owned Codex
+`SessionStart` hook. At startup or resume it creates (or reuses) a toolserver
+channel and binds inbound messages to the Codex thread's native queue. The
+shareable URL is shown at session start and added to the model's context.
+
+```bash
+abstract-gpt comms          # show the newest bound endpoint
+abstract-gpt set-comms off  # opt out (use `on` to enable again)
+```
+
+The wrapper passes Codex's hook-trust bypass only for launches it controls, so
+its installed hook can run without an extra confirmation step. This does not
+change Codex sandbox or tool approval policy.
+
 ## Validation
 
 ```bash

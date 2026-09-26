@@ -83,13 +83,21 @@ home.mkdir(exist_ok=True)
 
     def test_launch_flags_and_status_redaction(self):
         actions.set_model('configured')
-        with patch('subprocess.call', return_value=7) as call:
+        with patch('abstract_gpt.comms.ensure_hook'), patch('subprocess.call', return_value=7) as call:
             self.assertEqual(actions.launch(['--model', 'explicit', 'hello'], True), 7)
             self.assertEqual(call.call_args.args[0],
-                [str(self.fake), *actions.toolserver_args(), 'exec', '--ephemeral', '--model', 'explicit', 'hello'])
+                [str(self.fake), *actions.toolserver_args(), '--dangerously-bypass-hook-trust',
+                 'exec', '--ephemeral', '--model', 'explicit', 'hello'])
             actions.launch(['hello'])
-            self.assertEqual(call.call_args.args[0], [str(self.fake), *actions.toolserver_args(), '--model', 'configured', 'hello'])
+            self.assertEqual(call.call_args.args[0], [str(self.fake), *actions.toolserver_args(),
+                '--dangerously-bypass-hook-trust', '--model', 'configured', 'hello'])
         self.assertNotIn('secret', json.dumps(actions.auth_status()))
+
+    def test_comms_can_be_disabled(self):
+        actions.set_comms(False)
+        with patch('subprocess.call', return_value=0) as call:
+            actions.launch(['hello'])
+        self.assertNotIn('--dangerously-bypass-hook-trust', call.call_args.args[0])
 
     def test_cli_launch_forwards_yolo_without_separator(self):
         argv = ['abstract-gpt', 'launch', '--yolo', 'resume', 'session-id']
