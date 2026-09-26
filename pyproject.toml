@@ -17,7 +17,6 @@ abstract-gpt = "abstract_gpt.cli:main"
 [tool.setuptools.packages.find]
 where = ["src"]
 [tool.pypit]
-github_owner = "hugpy"
 github_push = true
 
 [tool.setuptools.package-data]
