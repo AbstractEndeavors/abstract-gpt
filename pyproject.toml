@@ -12,6 +12,9 @@ dependencies = ["prompt_toolkit>=3.0", "abstract-claude>=0.1.30"]
 [project.optional-dependencies]
 mcp = []
 serve = ["abstract-claude>=0.1.43"]
+[project.urls]
+Homepage = "https://github.com/AbstractEndeavors/abstract-gpt"
+Repository = "https://github.com/AbstractEndeavors/abstract-gpt"
 [project.scripts]
 abstract-gpt = "abstract_gpt.cli:main"
 [tool.setuptools.packages.find]
