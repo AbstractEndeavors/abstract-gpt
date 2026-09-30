@@ -10,6 +10,7 @@ abstract-gpt oauth-status
 abstract-gpt login                    # device URL + code; approve in your browser
 abstract-gpt launch --                # new interactive conversation
 abstract-gpt exec -- "Explain this repository"  # ephemeral noninteractive session
+abstract-gpt serve                    # shared GPT/Claude/Hugpy provider console
 ```
 
 `login --browser` uses normal browser login. `login --with-api-key` reads a key
@@ -64,6 +65,11 @@ use the existing authenticated toolserver connection.
 This package does not emulate Claude's durable token export, destructive reset,
 or automatic quota fallback. Codex owns its cached authentication and renewal.
 A service login applies to that service account; other OS users log in separately.
+
+`abstract-gpt serve` uses the shared Serve console when `abstract-claude` is
+installed, so its model picker can host every installed GPT, Claude, and Hugpy
+provider. The standalone GPT-only service remains a compatibility fallback for
+older minimal installations.
 
 ## Toolserver tools inside Codex
 
@@ -134,3 +140,12 @@ workspace exchanges, not unrelated conversations from the Codex login store.
 
 The adapted MCT UI and archive retain their original notice in
 `src/abstract_gpt/MCT-LICENSE.txt`.
+
+## Serve
+
+`abstract-gpt serve --workspace /path/to/project` runs its durable console on
+127.0.0.1:9127. The Conversation model picker uses the authenticated backend
+catalog and changes the current conversation while preserving its ID and history.
+`GET /api/console/models` lists choices; `POST /api/console/switch` accepts
+`session_id`, `backend: "gpt"`, and `model`. Active turns must finish first.
+Station combines this catalog with Claude and Hugpy in one Serve conversation.

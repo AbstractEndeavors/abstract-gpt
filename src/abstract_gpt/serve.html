@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Abstract GPT Serve</title>
+<style>
+body{margin:0;background:#101820;color:#e7edf5;font:15px system-ui;display:flex;height:100vh}aside{width:230px;padding:20px;border-right:1px solid #435161}main{flex:1;min-width:0;display:flex;flex-direction:column;padding:20px}button,input,select,textarea{font:inherit;background:#1e2a38;color:inherit;border:1px solid #64758a;border-radius:5px;padding:8px}button{cursor:pointer}button:disabled{opacity:.5}aside button{display:block;width:100%;margin:10px 0;overflow-wrap:anywhere}input{width:90%}#log{flex:1;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere}article{padding:12px;border-bottom:1px solid #344050}form{display:flex;gap:10px}textarea{flex:1;min-height:70px}#error{color:#ffb4b4}#approvals button{margin:8px}header{display:flex;justify-content:space-between}
+</style>
+<aside><h1>Abstract GPT</h1><label>Conversation model<select id="model" aria-label="Conversation model"><option value="">Configured default</option></select></label><button id="new">New session</button><nav id="sessions"></nav></aside>
+<main><header><span id="status">Connecting…</span><button id="stop" disabled>Stop</button></header>
+<div id="auth" hidden><label>Service token <input type="password" id="token" autocomplete="off"></label><button id="connect">Connect</button></div>
+<div id="log" role="log" aria-live="polite"></div><div id="approvals"></div><p id="error" role="alert"></p>
+<button id="retry" hidden>Retry held messages</button><form id="send"><textarea id="prompt" aria-label="Message" required></textarea><button>Send</button></form></main>
+<script>
+const $=id=>document.getElementById(id);let current=null,cursor=0,token='',polling=false;const pending=new Map();
+async function api(route,body){const r=await fetch('api/console/'+route,{method:body===undefined?'GET':'POST',headers:{'Content-Type':'application/json',...(token?{Authorization:'Bearer '+token}:{})},body:body===undefined?undefined:JSON.stringify(body)});const d=await r.json();$('auth').hidden=r.status!==401;if(!r.ok)throw Error(d.error||r.statusText);return d}
+function fail(e){$('error').textContent=e.message}
+function add(text){const a=document.createElement('article');a.textContent=text;$('log').append(a)}
+async function models(){const d=await api('models');const selected=$('model').value;$('model').replaceChildren();for(const m of d.models){$('model').append(new Option(m.label,m.model))}$('model').value=selected;if(d.error)fail(Error(d.error))}
+async function list(){const d=await api('sessions');$('sessions').replaceChildren();for(const s of d.sessions){const b=document.createElement('button');b.textContent=(s.label||s.model||'GPT')+' · '+s.id.slice(3,11);b.onclick=()=>select(s.id).catch(fail);$('sessions').append(b)}if(!current)$('status').textContent='Choose or create a session'}
+async function select(id){current=id;cursor=0;pending.clear();$('log').replaceChildren();$('approvals').replaceChildren();localStorage.setItem('gpt-serve-session',id);await poll()}
+async function poll(){if(!current||polling)return;polling=true;const id=current;try{const d=await api('events?id='+encodeURIComponent(id)+'&since='+cursor);if(id!==current)return;for(const e of d.events){cursor=e.seq;if(e.type==='approval_resolved'){const box=pending.get(e.request_id);if(box)box.remove();pending.delete(e.request_id)}else if(e.type==='user')add('You: '+e.text);else if(e.type==='done')add(e.error?'Error: '+e.error:'GPT: '+(e.result||''));else if(e.type==='approval'&&!pending.has(e.request_id)){const box=document.createElement('div');pending.set(e.request_id,box);const label=document.createElement('p');label.textContent=e.text||JSON.stringify(e.params||e);box.append(label);for(const decision of ['accept','decline']){const b=document.createElement('button');b.textContent=decision;b.onclick=()=>api('approval',{session_id:id,request_id:e.request_id,decision}).then(()=>box.remove()).catch(fail);box.append(b)}$('approvals').append(box)}}$('status').textContent=(d.session.model||'GPT')+' · '+(d.session.busy?'Working':'Ready');$('stop').disabled=!d.session.busy;$('model').disabled=d.session.busy;$('model').value=d.session.model||'';$('retry').hidden=!d.queue.paused}catch(e){fail(e)}finally{polling=false}}
+async function create(){const s=await api('sessions',{model:$('model').value});await select(s.id);await list()}
+$('model').onchange=async()=>{if(!current)return;try{await api('switch',{session_id:current,backend:'gpt',model:$('model').value});await list();await poll()}catch(e){fail(e);await poll()}};
+$('new').onclick=()=>create().catch(fail);
+$('send').onsubmit=async e=>{e.preventDefault();try{if(!current)await create();await api('chat',{session_id:current,prompt:$('prompt').value});$('prompt').value='';$('error').textContent='';await poll()}catch(e){fail(e)}};
+$('stop').onclick=()=>api('interrupt',{session_id:current}).then(poll).catch(fail);
+$('retry').onclick=()=>api('queue',{session_id:current,action:'retry'}).then(poll).catch(fail);
+async function start(){await models();await list();const saved=localStorage.getItem('gpt-serve-session');if(saved)await select(saved)}
+$('connect').onclick=()=>{token=$('token').value;$('token').value='';start().catch(fail)};
+start().catch(fail);setInterval(poll,750);
+</script></html>

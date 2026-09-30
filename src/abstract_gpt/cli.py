@@ -41,26 +41,42 @@ def main():
     methods.add_argument("--with-api-key", action="store_true")
     sub.add_parser("set-model").add_argument("model", nargs="?")
     sub.add_parser("set-comms").add_argument("state", choices=("on", "off"))
-    serve = sub.add_parser("serve", help="Run the shared Claude/GPT console (requires the serve extra)")
-    serve.add_argument("--host", default=None)
-    serve.add_argument("--port", type=int, default=None)
+    serve = sub.add_parser("serve", help="Run the shared provider web console")
+    serve.add_argument("--host", default="127.0.0.1")
+    serve.add_argument("--port", type=int, default=9127)
+    serve.add_argument("--state", default="~/.local/state/abstract-gpt-serve")
+    serve.add_argument("--workspace", default=None)
+    serve.add_argument("--no-browser", action="store_true",
+                       help="do not open the console URL automatically")
     for name in ("launch", "exec"):
         sub.add_parser(name)
     opts = parser.parse_args()
     try:
         if opts.command == "serve":
+            # abstract-claude owns the shared Serve UI and provider roster.
+            # abstract-gpt depends on it, so invoking either package's
+            # `serve` command exposes the provider-neutral GPT/Claude/Hugpy
+            # picker; abstract-gpt contributes only its adapter.
             try:
-                from abstract_claude.server import serve
-                from abstract_claude import console_service
+                from abstract_serve.serve_cli import main as serve_main
             except ImportError:
-                parser.error("Install abstract-gpt[serve] for the shared console")
-            return serve(host=opts.host, port=opts.port) or 0
+                # Keep the standalone GPT service usable with an older or
+                # deliberately minimal installation.
+                from .serve import serve
+                serve(host=opts.host, port=opts.port, state=opts.state,
+                      workspace=opts.workspace)
+            else:
+                args = ["--host", opts.host, "--port", str(opts.port)]
+                if opts.no_browser:
+                    args.append("--no-browser")
+                return serve_main(args)
+            return 0
         if opts.command == "login":
             flags = ["--with-api-key"] if opts.with_api_key else ([] if opts.browser else ["--device-auth"])
             return subprocess.call([actions.binary(), "login"] + flags, env=actions.env(), cwd=Path.home())
         if opts.command == "mcp":
             try:
-                from abstract_claude.mcp import serve_mcp as bridge
+                from abstract_serve.mcp import serve_mcp as bridge
             except ImportError:
                 parser.error("Install abstract-gpt[mcp] to use the toolserver MCP bridge")
             return bridge() or 0
