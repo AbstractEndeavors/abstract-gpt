@@ -3,12 +3,12 @@ requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 [project]
 name = "abstract-gpt"
-version = "0.1.11"
+version = "0.1.12"
 description = "Codex login and session management for the abstract toolserver"
 readme = "README.md"
 requires-python = ">=3.11"
 authors = [{name = "jrputkey"}]
-dependencies = ["prompt_toolkit>=3.0", "abstract-claude>=0.1.61", "abstract-serve-core>=0.1.1"]
+dependencies = ["prompt_toolkit>=3.0", "abstract-claude>=0.1.65", "abstract-serve-core>=0.1.6", "abstract-toolserver~=0.0.31"]
 [project.optional-dependencies]
 mcp = []
 serve = ["abstract-claude>=0.1.61"]

@@ -730,10 +730,11 @@ def backfill_exchanges(exchange_dir, locus, base=None, token=None):
     toolserver's per-locus exchanges DB (idempotent — (locus, turn) upserts).
     Returns {sent, failed, skipped}."""
     import urllib.request as _u
-    base = (base or os.environ.get("TOOLSERVER_URL",
-                                   "https://toolserver.hugpy.ai")).rstrip("/")
+    from abstract_toolserver import discovery as _d
+    base = (base or _d.resolve_url()).rstrip("/")
     token = token or (os.environ.get("TOOLSERVER_OPERATOR_TOKEN")
-                      or os.environ.get("HUGPY_OPERATOR_TOKEN"))
+                      or os.environ.get("HUGPY_OPERATOR_TOKEN")
+                      or _d.resolve_token("", base)[0])
     ex = Path(exchange_dir).expanduser()
     sent = failed = skipped = 0
     for p in sorted(ex.glob("turn-*-prompt.md")):

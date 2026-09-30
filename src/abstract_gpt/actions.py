@@ -62,6 +62,19 @@ def env():
     return result
 
 
+def ensure_toolserver(wait=20.0):
+    """First-run hook (2026-09-30): the ONE toolserver for this host via
+    abstract_toolserver.discovery.ensure_endpoint (configured URL, else the local
+    advertisement; a local instance is started only when the server extra is
+    importable). Non-fatal; returns the ensure_endpoint dict or {"error": ...}."""
+    try:
+        import importlib.util as _iu
+        from abstract_toolserver import discovery as _d
+        return _d.ensure_endpoint(start=_iu.find_spec("abstract_flask") is not None, wait=wait)
+    except Exception as exc:  # noqa: BLE001
+        return {"error": str(exc)}
+
+
 def toolserver_args():
     """Expose the bundled stdio bridge on every Codex launch, independent of CODEX_HOME."""
     return ["-c", f"mcp_servers.toolserver.command={json.dumps(sys.executable)}",
@@ -204,6 +217,7 @@ def launch(args, execute=False):
     if comms_enabled:
         from .comms import ensure_hook
         ensure_hook()
+    ensure_toolserver()
     command = [binary(), *toolserver_args()]
     if comms_enabled and "--dangerously-bypass-hook-trust" not in args:
         command += ["--dangerously-bypass-hook-trust"]

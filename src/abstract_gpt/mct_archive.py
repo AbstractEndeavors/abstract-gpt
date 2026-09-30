@@ -23,11 +23,12 @@ class Archive:
         self.root = self.ws / "archive"
         self.root.mkdir(parents=True, exist_ok=True)
         self.locus = locus or os.environ.get("MCT_LOCUS") or os.environ.get("EXCHANGE_LOCUS")
-        self.base = (os.environ.get("EXCHANGE_INGEST_URL") or
-                     os.environ.get("TOOLSERVER_URL") or "https://toolserver.hugpy.ai").rstrip("/")
+        from abstract_toolserver import discovery as _d
+        self.base = (os.environ.get("EXCHANGE_INGEST_URL") or _d.resolve_url()).rstrip("/")
         self.token = (os.environ.get("TOOLSERVER_TOKEN") or
                       os.environ.get("TOOLSERVER_OPERATOR_TOKEN") or
-                      os.environ.get("HUGPY_OPERATOR_TOKEN") or "")
+                      os.environ.get("HUGPY_OPERATOR_TOKEN") or
+                      _d.resolve_token("", self.base)[0] or "")
         self.lock = threading.Lock()
         self.scan_lock = threading.Lock()
         self.wake = threading.Event()

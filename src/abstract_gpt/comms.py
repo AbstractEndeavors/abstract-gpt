@@ -6,7 +6,6 @@ import os
 from pathlib import Path
 import socket
 import sys
-import urllib.request
 
 from . import actions
 
@@ -15,28 +14,17 @@ HOOK_MARKER = "abstract-gpt-comms"
 
 
 def _mcp_call(name, arguments):
-    try:
-        from abstract_claude.mcp import BASE, TOKEN
-    except ImportError as exc:
-        raise RuntimeError("abstract-claude is required for toolserver comms") from exc
-    if not TOKEN:
+    """Call a toolserver tool through the SHARED client (abstract_toolserver.client;
+    endpoint + token via abstract_toolserver.discovery). Raises RuntimeError on
+    no token / transport failure / a tool-level {"error"}."""
+    from abstract_toolserver.client import ToolserverClient, ToolserverError
+    client = ToolserverClient(timeout=30)
+    if not client.token:
         raise RuntimeError("no toolserver token found")
-    payload = {
-        "jsonrpc": "2.0", "id": 1, "method": "tools/call",
-        "params": {"name": "ts_call", "arguments": {"name": name, "arguments": arguments}},
-    }
-    req = urllib.request.Request(
-        BASE.rstrip("/") + "/mcp", data=json.dumps(payload).encode(), method="POST",
-        headers={"Authorization": "Bearer " + TOKEN, "Content-Type": "application/json",
-                 "Accept": "application/json, text/event-stream"})
-    with urllib.request.urlopen(req, timeout=30) as response:
-        doc = json.loads(response.read().decode())
-    result = doc.get("result") or {}
-    if result.get("isError"):
-        raise RuntimeError(str(result.get("content") or "toolserver call failed"))
-    content = result.get("content") or []
-    text = next((part.get("text") for part in content if part.get("type") == "text"), "{}")
-    value = json.loads(text)
+    try:
+        value = client.call(name, arguments)
+    except ToolserverError as exc:
+        raise RuntimeError("toolserver call failed: %s" % exc) from exc
     if isinstance(value, dict) and value.get("error"):
         raise RuntimeError(str(value["error"]))
     return value

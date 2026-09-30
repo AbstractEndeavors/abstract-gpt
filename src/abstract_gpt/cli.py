@@ -78,7 +78,7 @@ def main():
             try:
                 from abstract_serve.mcp import serve_mcp as bridge
             except ImportError:
-                parser.error("Install abstract-gpt[mcp] to use the toolserver MCP bridge")
+                parser.error("abstract-serve-core is required for the toolserver MCP bridge")
             return bridge() or 0
         if opts.command == "comms-hook":
             from .comms import session_start_hook
