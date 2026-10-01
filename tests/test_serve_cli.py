@@ -14,7 +14,7 @@ from abstract_gpt import cli  # noqa: E402
 
 class ServeIsTheSharedConsole(unittest.TestCase):
     def test_serve_runs_the_shared_console_with_gpt_first(self):
-        with patch("abstract_serve.serve_cli.main", return_value=0) as serve_main, \
+        with patch("abstract_serve_core.serve_cli.main", return_value=0) as serve_main, \
                 patch.object(sys, "argv", ["abstract-gpt", "serve", "--no-browser"]), \
                 patch.dict(os.environ, {}, clear=False):
             self.assertEqual(cli.main(), 0)
@@ -23,7 +23,7 @@ class ServeIsTheSharedConsole(unittest.TestCase):
 
     def test_registered_as_a_serve_provider_without_requiring_claude(self):
         meta = tomllib.loads((Path(__file__).resolve().parents[1] / "pyproject.toml").read_text())["project"]
-        self.assertEqual(meta["entry-points"]["abstract_serve.providers"], {"gpt": "abstract_serve.providers:gpt"})
+        self.assertEqual(meta["entry-points"]["abstract_serve_core.providers"], {"gpt": "abstract_serve_core.providers:gpt"})
         self.assertFalse([d for d in meta["dependencies"] if d.startswith("abstract-claude")])
 
 

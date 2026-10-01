@@ -58,9 +58,9 @@ def main():
             # `serve` IS abstract-serve-core's one Serve console, the same
             # program as abstract-claude serve and hugpy-agent serve: it offers
             # the models of every installed provider (abstract-gpt registers
-            # GPT via its abstract_serve.providers entry point).
+            # GPT via its abstract_serve_core.providers entry point).
             try:
-                from abstract_serve.serve_cli import main as serve_main
+                from abstract_serve_core.serve_cli import main as serve_main
             except ImportError as exc:
                 parser.error("abstract-gpt serve needs abstract-serve-core (" + str(exc) + ")")
             # 9124 joins this user's shared console (serve_cli reuses a live
@@ -75,7 +75,7 @@ def main():
             return subprocess.call([actions.binary(), "login"] + flags, env=actions.env(), cwd=Path.home())
         if opts.command == "mcp":
             try:
-                from abstract_serve.mcp import serve_mcp as bridge
+                from abstract_serve_core.mcp import serve_mcp as bridge
             except ImportError:
                 parser.error("abstract-serve-core is required for the toolserver MCP bridge")
             return bridge() or 0

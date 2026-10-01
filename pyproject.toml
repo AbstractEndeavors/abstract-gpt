@@ -3,14 +3,14 @@ requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 [project]
 name = "abstract-gpt"
-version = "0.1.14"
+version = "0.1.15"
 description = "Codex login and session management for the abstract toolserver"
 readme = "README.md"
 requires-python = ">=3.11"
 authors = [{name = "jrputkey"}]
 # No abstract-claude here: Serve offers whichever providers are installed, and
 # none requires another (the standalone abstract_gpt.serve keeps it via [serve]).
-dependencies = ["prompt_toolkit>=3.0", "abstract-serve-core>=0.1.10", "abstract-toolserver~=0.0.31"]
+dependencies = ["prompt_toolkit>=3.0", "abstract-serve-core>=0.1.12", "abstract-toolserver~=0.0.31"]
 [project.optional-dependencies]
 mcp = []
 serve = ["abstract-claude>=0.1.61"]
@@ -18,8 +18,8 @@ serve = ["abstract-claude>=0.1.61"]
 abstract-gpt = "abstract_gpt.cli:main"
 # `abstract-gpt serve` IS abstract-serve-core's one Serve console; this registers
 # GPT among its providers (discovered from this metadata, loaded on demand).
-[project.entry-points."abstract_serve.providers"]
-gpt = "abstract_serve.providers:gpt"
+[project.entry-points."abstract_serve_core.providers"]
+gpt = "abstract_serve_core.providers:gpt"
 [tool.setuptools.packages.find]
 where = ["src"]
 [tool.pypit]
