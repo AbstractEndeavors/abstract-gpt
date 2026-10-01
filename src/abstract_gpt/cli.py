@@ -1,6 +1,7 @@
 """Command-line entry point."""
 import argparse
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -43,7 +44,8 @@ def main():
     sub.add_parser("set-comms").add_argument("state", choices=("on", "off"))
     serve = sub.add_parser("serve", help="Run the shared provider web console")
     serve.add_argument("--host", default="127.0.0.1")
-    serve.add_argument("--port", type=int, default=9127)
+    serve.add_argument("--port", type=int, default=None,
+                       help="default 9124 (the shared console); 9127 for the standalone GPT service")
     serve.add_argument("--state", default="~/.local/state/abstract-gpt-serve")
     serve.add_argument("--workspace", default=None)
     serve.add_argument("--no-browser", action="store_true",
@@ -63,12 +65,15 @@ def main():
                 # Keep the standalone GPT service usable with an older or
                 # deliberately minimal installation.
                 from .serve import serve
-                serve(host=opts.host, port=opts.port, state=opts.state,
+                serve(host=opts.host, port=opts.port or 9127, state=opts.state,
                       workspace=opts.workspace)
             else:
-                args = ["--host", opts.host, "--port", str(opts.port)]
+                # 9124 joins the one shared console (serve_cli reuses a live one)
+                # instead of starting a second copy.
+                args = ["--host", opts.host, "--port", str(opts.port or 9124)]
                 if opts.no_browser:
                     args.append("--no-browser")
+                os.environ["AC_SERVE_BACKEND"] = "gpt"
                 return serve_main(args)
             return 0
         if opts.command == "login":

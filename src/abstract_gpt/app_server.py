@@ -13,6 +13,9 @@ import time
 
 from . import actions
 
+ELICITATION = "mcpServer/elicitation/request"   # codex's approval ask before an MCP tool call
+OUTPUT_CAP = 64 * 1024   # chars of one command's output the console stores (a stray `rg .` streamed 10 MB)
+
 
 class RpcClient:
     def __init__(self, command=None, cwd=None, timeout=30):
@@ -123,7 +126,12 @@ class Adapter:
             if decision not in ("accept", "acceptForSession", "decline", "cancel"):
                 raise ValueError("Invalid approval decision")
             method = request["method"]
-            if method == "item/permissions/requestApproval":
+            if method == ELICITATION:
+                # MCP tool approval (codex asks before every toolserver call):
+                # the console's y/a/n maps onto the MCP elicitation actions.
+                result = {"action": "accept" if decision.startswith("accept") else decision,
+                          "content": {} if decision.startswith("accept") else None}
+            elif method == "item/permissions/requestApproval":
                 permissions = request.get("params", {}).get("permissions", {})
                 result = {"permissions": permissions if decision.startswith("accept") else {},
                           "scope": "session" if decision == "acceptForSession" else "turn"}
@@ -160,6 +168,7 @@ class Adapter:
             if self.cancelled.is_set():
                 self.interrupt()
             answers = {}
+            output = {}       # commandExecution item id -> chars streamed so far
             deadline = time.monotonic() + 12 * 3600
             while time.monotonic() < deadline:
                 try:
@@ -171,8 +180,11 @@ class Adapter:
                     raise RuntimeError("Codex app-server disconnected during turn")
                 if "id" in obj and method:
                     supported = ("item/commandExecution/requestApproval", "item/fileChange/requestApproval",
-                                 "item/permissions/requestApproval")
-                    if method in supported:
+                                 "item/permissions/requestApproval", ELICITATION)
+                    if method == ELICITATION and dangerous:
+                        # unrestricted session: approve MCP tool calls like everything else
+                        client.send({"id": obj["id"], "result": {"action": "accept", "content": {}}})
+                    elif method in supported:
                         with self.lock:
                             self.requests[str(obj["id"])] = obj
                         emit({"type": "approval", "request_id": obj["id"], "method": method,
@@ -191,13 +203,23 @@ class Adapter:
                 elif method == "item/agentMessage/delta":
                     emit({"type": "text", "text": p.get("delta", "")})
                 elif method == "item/commandExecution/outputDelta":
-                    emit({"type": "tool_result", "text": p.get("delta", "")})
+                    delta, key = p.get("delta", ""), p.get("itemId", "")
+                    seen = output.get(key, 0)
+                    output[key] = seen + len(delta)
+                    if seen < OUTPUT_CAP:
+                        emit({"type": "tool_result", "text": delta[:OUTPUT_CAP - seen]})
                 elif method in ("item/started", "item/completed"):
                     item = p.get("item", {})
                     kind = item.get("type")
                     if kind == "agentMessage" and method == "item/completed":
                         answers[item["id"]] = item.get("text", "")
                     elif kind in ("commandExecution", "fileChange", "mcpToolCall", "webSearch"):
+                        total = output.get(item.get("id"), 0)
+                        if kind == "commandExecution" and method == "item/completed" and total > OUTPUT_CAP:
+                            emit({"type": "tool_result", "text": "\n[console kept %d of %d chars of output]" % (OUTPUT_CAP, total)})
+                        if len(item.get("aggregatedOutput") or "") > OUTPUT_CAP:
+                            agg = item["aggregatedOutput"]
+                            item = dict(item, aggregatedOutput=agg[:OUTPUT_CAP] + "\n[truncated: %d chars total]" % len(agg))
                         emit({"type": "tool", "name": kind, "summary": item.get("command") or kind,
                               "item": item, "status": "started" if method.endswith("started") else "completed"})
                 elif method == "thread/tokenUsage/updated":

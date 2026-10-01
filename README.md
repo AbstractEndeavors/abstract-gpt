@@ -143,8 +143,9 @@ The adapted MCT UI and archive retain their original notice in
 
 ## Serve
 
-`abstract-gpt serve --workspace /path/to/project` runs its durable console on
-127.0.0.1:9127. The Conversation model picker uses the authenticated backend
+`abstract-gpt serve --workspace /path/to/project` opens the shared Serve console
+on 127.0.0.1:9124, joining it if one is already running (the standalone GPT
+service used without abstract-serve-core stays on 127.0.0.1:9127). The Conversation model picker uses the authenticated backend
 catalog and changes the current conversation while preserving its ID and history.
 `GET /api/console/models` lists choices; `POST /api/console/switch` accepts
 `session_id`, `backend: "gpt"`, and `model`. Active turns must finish first.
