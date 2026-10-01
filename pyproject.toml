@@ -3,14 +3,14 @@ requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 [project]
 name = "abstract-gpt"
-version = "0.1.15"
+version = "0.1.16"
 description = "Codex login and session management for the abstract toolserver"
 readme = "README.md"
 requires-python = ">=3.11"
 authors = [{name = "jrputkey"}]
 # No abstract-claude here: Serve offers whichever providers are installed, and
 # none requires another (the standalone abstract_gpt.serve keeps it via [serve]).
-dependencies = ["prompt_toolkit>=3.0", "abstract-serve-core>=0.1.12", "abstract-toolserver~=0.0.31"]
+dependencies = ["prompt_toolkit>=3.0", "abstract-serve-core>=0.1.12", "abstract-toolserver>=0.0.43,<0.1"]
 [project.optional-dependencies]
 mcp = []
 serve = ["abstract-claude>=0.1.61"]

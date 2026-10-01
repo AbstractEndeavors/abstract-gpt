@@ -217,9 +217,11 @@ def launch(args, execute=False):
     if comms_enabled:
         from .comms import ensure_hook
         ensure_hook()
+    from .rollover import install_hooks
+    install_hooks()
     ensure_toolserver()
     command = [binary(), *toolserver_args()]
-    if comms_enabled and "--dangerously-bypass-hook-trust" not in args:
+    if "--dangerously-bypass-hook-trust" not in args:
         command += ["--dangerously-bypass-hook-trust"]
     if execute:
         command += ["exec", "--ephemeral"]
@@ -227,4 +229,12 @@ def launch(args, execute=False):
         a in ("-m", "--model") or a.startswith(("--model=", "-m")) for a in args
     ):
         command += ["--model", cfg["default_model"]]
-    return subprocess.call(command + args, env=env())
+    if execute:
+        return subprocess.call(command + args, env=env())
+    proc = subprocess.Popen(command + args, env=env())
+    try:
+        from .rollover import spawn
+        spawn(proc.pid)
+    except Exception:
+        pass
+    return proc.wait()

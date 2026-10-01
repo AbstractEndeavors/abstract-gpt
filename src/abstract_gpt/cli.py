@@ -9,6 +9,30 @@ from . import actions
 
 
 def main():
+    if sys.argv[1:2] == ["rollover-hook"]:
+        from .rollover import hook_event
+        hook_event()
+        return 0
+    if sys.argv[1:2] == ["rollover-watch"]:
+        from .rollover import run
+        parser = argparse.ArgumentParser()
+        parser.add_argument("--pid", type=int, required=True)
+        parser.add_argument("--locus", required=True)
+        parser.add_argument("--tmux", required=True)
+        parser.add_argument("--codex-home", required=True)
+        a = parser.parse_args(sys.argv[2:])
+        return run(a.pid, a.locus, a.tmux, a.codex_home)
+    if sys.argv[1:2] == ["rollover"]:
+        from .comms import _mcp_call
+        locus = sys.argv[2] if len(sys.argv) > 2 else (
+            os.environ.get("HUGPY_LOCUS") or os.environ.get("EXCHANGE_LOCUS") or "")
+        if not locus:
+            print("rollover needs a locus argument or HUGPY_LOCUS", file=sys.stderr)
+            return 2
+        result = _mcp_call("seat_rollover", {"locus": locus, "seat": "codex",
+                                                 "action": "request"})
+        print(json.dumps(result, indent=2))
+        return 0
     if sys.argv[1:2] == ["mct"]:
         from .mct_repl import main as mct_main
         try:
@@ -50,7 +74,7 @@ def main():
     serve.add_argument("--workspace", default=None)
     serve.add_argument("--no-browser", action="store_true",
                        help="do not open the console URL automatically")
-    for name in ("launch", "exec"):
+    for name in ("launch", "exec", "rollover"):
         sub.add_parser(name)
     opts = parser.parse_args()
     try:

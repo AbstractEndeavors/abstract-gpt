@@ -1,5 +1,10 @@
 # abstract-gpt
 
+Terminal seats can run `abstract-gpt rollover <locus>` to queue a toolserver
+managed rollover. The automatic gate uses 85% of Codex's reported context
+window and waits for an idle parent turn with no active subagents. It writes a
+toolserver ledger before `/clear` and resumes the work in the new chat.
+
 Codex login and session management, usable as a CLI and as the optional `/gpt/*`
 category in `abstract_toolserver`. Requires Python 3.11+, Linux (for HTTP login
 locking), and an installed Codex CLI.
