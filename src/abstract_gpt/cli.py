@@ -45,7 +45,7 @@ def main():
     serve = sub.add_parser("serve", help="Run the shared provider web console")
     serve.add_argument("--host", default="127.0.0.1")
     serve.add_argument("--port", type=int, default=None,
-                       help="default 9124 (the shared console); 9127 for the standalone GPT service")
+                       help="default 9124 (the shared console)")
     serve.add_argument("--state", default="~/.local/state/abstract-gpt-serve")
     serve.add_argument("--workspace", default=None)
     serve.add_argument("--no-browser", action="store_true",
@@ -55,27 +55,21 @@ def main():
     opts = parser.parse_args()
     try:
         if opts.command == "serve":
-            # abstract-claude owns the shared Serve UI and provider roster.
-            # abstract-gpt depends on it, so invoking either package's
-            # `serve` command exposes the provider-neutral GPT/Claude/Hugpy
-            # picker; abstract-gpt contributes only its adapter.
+            # `serve` IS abstract-serve-core's one Serve console, the same
+            # program as abstract-claude serve and hugpy-agent serve: it offers
+            # the models of every installed provider (abstract-gpt registers
+            # GPT via its abstract_serve.providers entry point).
             try:
                 from abstract_serve.serve_cli import main as serve_main
-            except ImportError:
-                # Keep the standalone GPT service usable with an older or
-                # deliberately minimal installation.
-                from .serve import serve
-                serve(host=opts.host, port=opts.port or 9127, state=opts.state,
-                      workspace=opts.workspace)
-            else:
-                # 9124 joins the one shared console (serve_cli reuses a live one)
-                # instead of starting a second copy.
-                args = ["--host", opts.host, "--port", str(opts.port or 9124)]
-                if opts.no_browser:
-                    args.append("--no-browser")
-                os.environ["AC_SERVE_BACKEND"] = "gpt"
-                return serve_main(args)
-            return 0
+            except ImportError as exc:
+                parser.error("abstract-gpt serve needs abstract-serve-core (" + str(exc) + ")")
+            # 9124 joins this user's shared console (serve_cli reuses a live
+            # one) instead of starting a second copy.
+            args = ["--host", opts.host, "--port", str(opts.port or 9124)]
+            if opts.no_browser:
+                args.append("--no-browser")
+            os.environ["AC_SERVE_BACKEND"] = "gpt"
+            return serve_main(args)
         if opts.command == "login":
             flags = ["--with-api-key"] if opts.with_api_key else ([] if opts.browser else ["--device-auth"])
             return subprocess.call([actions.binary(), "login"] + flags, env=actions.env(), cwd=Path.home())
