@@ -11,6 +11,49 @@ from . import actions
 from .comms import _mcp_call
 
 
+MODES = ("auto", "manual", "off")
+
+
+def mode():
+    """Roller switch: env AG_ROLLOVER_MODE beats <root>/config.json
+    rollover_mode; default auto. Re-read every watcher tick so a flip
+    takes effect live, no restart."""
+    v = (os.environ.get("AG_ROLLOVER_MODE") or "").strip().lower()
+    if v in ("on", "1", "true"):
+        v = "auto"
+    if v in ("0", "false"):
+        v = "off"
+    if v in MODES:
+        return v
+    try:
+        cfg = actions.read_json(actions.root() / "config.json") or {}
+        v = str(cfg.get("rollover_mode") or "auto").strip().lower()
+    except Exception:
+        v = "auto"
+    return v if v in MODES else "auto"
+
+
+def set_mode(value):
+    """Persist rollover_mode into <root>/config.json; on == auto, off/manual literal."""
+    value = str(value or "").strip().lower()
+    if value in ("on", "1", "true"):
+        value = "auto"
+    if value in ("0", "false"):
+        value = "off"
+    if value not in MODES:
+        return {"ok": False, "error": "mode must be auto | manual | off (or on/off)"}
+    path = actions.root() / "config.json"
+    cfg = actions.read_json(path) if path.exists() else {}
+    cfg = cfg or {}
+    cfg["rollover_mode"] = value
+    actions.write(path, json.dumps(cfg, indent=1) + "\n")
+    out = {"ok": True, "mode": value}
+    env = (os.environ.get("AG_ROLLOVER_MODE") or "").strip().lower()
+    if env and env not in ("", value):
+        out["warning"] = "env AG_ROLLOVER_MODE=%s overrides config" % env
+    return out
+
+
 def install_hooks():
     path = actions.codex_home() / "hooks.json"
     doc = actions.read_json(path) if path.exists() else {}
@@ -143,8 +186,13 @@ def run(watch_pid, locus, session, codex_dir, interval=30):
             os.kill(watch_pid, 0)
         except ProcessLookupError:
             return 0
+        pol = mode()
         sid, path, ctx, window, _quiet, complete = latest_rollout(codex_dir)
-        if sid:
+        if pol == "off":
+            _call("seat_report", {"locus": locus, "seat": "codex", "alive": True,
+                "pid": watch_pid, "age_s": int(time.time() - started),
+                "session_id": sid or "", "status": {"rollover": {"mode": "off"}}})
+        elif sid:
             if not pinned and os.path.getmtime(path) >= started - 30:
                 pinned = sid
             if pinned and (sid == pinned or new_sent == pinned):
@@ -158,7 +206,7 @@ def run(watch_pid, locus, session, codex_dir, interval=30):
                     "session_id": pinned, "status": {"rollover": state, "context_tokens": ctx,
                     "context_window": window, "active_agents": active_agents}})
                 phase = state.get("phase")
-                if phase == "pending" and complete and idle >= 120 and handoff_sent != pinned:
+                if phase == "pending" and pol == "auto" and complete and idle >= 120 and handoff_sent != pinned:
                     prompt = ("Rollover handoff: write the current task state to the toolserver "
                               "ledger for locus " + locus + ". Include goal, rulings, decisions, "
                               "world state, in-flight work, open questions, and pointers. "
@@ -166,7 +214,7 @@ def run(watch_pid, locus, session, codex_dir, interval=30):
                               "locus/task handoff id.")
                     if send_line(session, prompt):
                         handoff_sent = pinned
-                if phase == "pending" and handoff_sent == pinned:
+                if phase == "pending" and pol == "auto" and handoff_sent == pinned:
                     rows = _call("ledger_list", {"locus": locus, "status": "active", "limit": 20})
                     for row in rows if isinstance(rows, list) else []:
                         if (row.get("session_id") == pinned and
@@ -175,7 +223,7 @@ def run(watch_pid, locus, session, codex_dir, interval=30):
                                 "session_id": pinned, "action": "handoff",
                                 "handoff_id": locus + "/" + row["task"]})
                             break
-                if state.get("phase") == "handoff" and complete and idle >= 10:
+                if state.get("phase") == "handoff" and pol == "auto" and complete and idle >= 10:
                     if new_sent != pinned and send_line(session, "/clear"):
                         new_sent = pinned
                         time.sleep(4)

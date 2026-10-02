@@ -22,6 +22,15 @@ def main():
         parser.add_argument("--codex-home", required=True)
         a = parser.parse_args(sys.argv[2:])
         return run(a.pid, a.locus, a.tmux, a.codex_home)
+    if sys.argv[1:2] == ["rollover-mode"]:
+        from .rollover import mode, set_mode
+        arg = (sys.argv[2:3] or [""])[0]
+        if not arg or arg == "status":
+            print(mode())
+            return 0
+        res = set_mode(arg)
+        print(json.dumps(res))
+        return 0 if res.get("ok") else 1
     if sys.argv[1:2] == ["rollover"]:
         from .comms import _mcp_call
         locus = sys.argv[2] if len(sys.argv) > 2 else (
