@@ -2,9 +2,9 @@
 import fcntl
 import json
 import os
+import shutil
 from pathlib import Path
 import re
-import shutil
 import subprocess
 import sys
 import tempfile
@@ -21,6 +21,9 @@ def codex_home():
 
 
 def binary():
+    """This user's Codex: the AG_CODEX_BIN pin, else ~/.local/bin/codex, else PATH.
+    When there is none, OpenAI's release binary is installed into ~/.local/bin/codex
+    (abstract_serve_core.clis) instead of failing."""
     candidate = Path.home() / ".local/bin/codex"
     found = os.environ.get("AG_CODEX_BIN")
     if not found and candidate.is_file():
@@ -28,8 +31,18 @@ def binary():
     if not found:
         found = shutil.which("codex")
     if not found:
-        raise FileNotFoundError("Install Codex CLI or set AG_CODEX_BIN")
+        from abstract_serve_core.clis import CliInstallError, install_codex
+        try:
+            found = install_codex()
+        except CliInstallError as exc:
+            raise FileNotFoundError(f"Codex CLI is missing and could not be installed: {exc}") from exc
     return found
+    from abstract_serve_core.clis import CliInstallError, ensure_codex
+    try:
+        _BINARY = ensure_codex()
+    except CliInstallError as exc:
+        raise FileNotFoundError(f"Codex CLI is missing and could not be installed: {exc}") from exc
+    return _BINARY
 
 
 def private_dir(path):
@@ -103,7 +116,45 @@ def init_root():
     private_dir(root())
     if not (root() / "config.json").exists():
         write(root() / "config.json", '{}\n')
-    return {"ok": True, "root": str(root())}
+    skills = install_skills()
+    return {"ok": True, "root": str(root()), "skills": skills}
+
+
+def install_skills():
+    """Install packaged toolserver skills into this Codex profile, add-only.
+
+    Skills are kept in CODEX_HOME so custom Codex profiles get the same
+    abstract-gpt workflows. Never overwrite an existing user skill.
+    """
+    try:
+        from importlib.resources import files
+        source = files("abstract_gpt") / "templates" / "skills"
+        if not source.is_dir():
+            return {"installed": [], "preserved": []}
+        installed, preserved = [], []
+        skill_root = codex_home() / "skills"
+        for entry in source.iterdir():
+            manifest = entry / "SKILL.md"
+            if not entry.is_dir() or not manifest.is_file():
+                continue
+            destination = skill_root / entry.name
+            target = destination / "SKILL.md"
+            if target.exists():
+                preserved.append(entry.name)
+                continue
+            destination.mkdir(parents=True, exist_ok=True)
+            # Exclusive create keeps a concurrent/user-created file intact.
+            try:
+                fd = os.open(target, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+            except FileExistsError:
+                preserved.append(entry.name)
+                continue
+            with os.fdopen(fd, "w") as stream:
+                stream.write(manifest.read_text())
+            installed.append(entry.name)
+        return {"installed": installed, "preserved": preserved}
+    except Exception as exc:
+        return {"error": str(exc), "installed": [], "preserved": []}
 
 
 def set_model(default_model=None):
@@ -212,6 +263,7 @@ def login_poll():
 
 def launch(args, execute=False):
     """New conversation, same refreshable credential store; exec is ephemeral."""
+    install_skills()
     cfg = read_json(root() / "config.json")
     comms_enabled = cfg.get("comms_enabled", True)
     if comms_enabled:

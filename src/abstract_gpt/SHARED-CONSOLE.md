@@ -1,8 +1,9 @@
 # Shared Claude / GPT console
 
 `abstract-gpt serve` and `abstract-claude serve` start the same web service.
-Run one per locus/state directory. Install `abstract-gpt[serve]` (GPT 0.1.3,
-Claude 0.1.43+) or add `abstract-claude[gpt]` to the existing console.
+`abstract-serve-core` owns the shared service; `abstract-claude` and
+`abstract-gpt` register provider adapters. Install either provider package to
+make it available in the shared console.
 
 The **Sessions · Claude / GPT** button opens the shared session view. Choose
 backend, workspace, optional model, and—for GPT—reasoning effort and execution

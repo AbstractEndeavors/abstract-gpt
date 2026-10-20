@@ -18,6 +18,12 @@ abstract-gpt exec -- "Explain this repository"  # ephemeral noninteractive sessi
 abstract-gpt serve                    # shared GPT/Claude/Hugpy provider console
 ```
 
+`abstract-gpt init` and interactive launches install three Codex skills into
+`$CODEX_HOME/skills` (default `~/.codex/skills`): `$abstract-gpt-handoff`,
+`$abstract-gpt-resume`, and `$abstract-gpt-rollover`. They adapt the shared
+toolserver handoff/resume/rollover workflows to Codex; the rollover skill uses
+the existing `codex` seat watcher. Existing skill files are never overwritten.
+
 `login --browser` uses normal browser login. `login --with-api-key` reads a key
 from stdin via Codex itself. API key usage has separate API billing. No key is
 required for the ChatGPT subscription login flow.
@@ -47,7 +53,7 @@ required for the ChatGPT subscription login flow.
 |---|---|---|
 | **hugpy** (14 lockstep dists) | the self-hosted LLM fleet: central, workers, engine, media, server | [hugpy](https://pypi.org/project/hugpy/) |
 | **hugpy-station** | Electron desktop + headless backend; tmux seats, prompt composer, loop/bug scan | deb via central install links |
-| **hugpy-agent** | agent runtime on the fleet; `hugpy-agent tui` over abstract-claude serve | [hugpy-agent](https://pypi.org/project/hugpy-agent/) |
+| **hugpy-agent** | agent runtime on the fleet; `hugpy-agent tui`, the provider-neutral terminal client over the shared Serve API (`abstract-claude` / `abstract-gpt` / `hugpy-agent serve`) | [hugpy-agent](https://pypi.org/project/hugpy-agent/) |
 | **abstract-claude** | Claude Code launch/session/rollover + `abstract-claude serve` (roles keeper/chat/worker/local) | [abstract-claude](https://pypi.org/project/abstract-claude/) |
 | **abstract-serve-core** | the HTTP routes `abstract-claude serve` actually runs (queue, relay, rollover sweeps) | [abstract-serve-core](https://pypi.org/project/abstract-serve-core/) |
 | **abstract-gpt** | Codex/ChatGPT seat counterpart of abstract-claude | [abstract-gpt](https://pypi.org/project/abstract-gpt/) |
@@ -103,10 +109,9 @@ This package does not emulate Claude's durable token export, destructive reset,
 or automatic quota fallback. Codex owns its cached authentication and renewal.
 A service login applies to that service account; other OS users log in separately.
 
-`abstract-gpt serve` uses the shared Serve console when `abstract-claude` is
-installed, so its model picker can host every installed GPT, Claude, and Hugpy
-provider. The standalone GPT-only service remains a compatibility fallback for
-older minimal installations.
+`abstract-gpt serve` starts or joins `abstract-serve-core`'s shared console.
+Installed GPT, Claude, and Hugpy providers register independently; Claude is
+not required for the GPT provider to use the shared service.
 
 ## Toolserver tools inside Codex
 
@@ -180,9 +185,8 @@ The adapted MCT UI and archive retain their original notice in
 
 ## Serve
 
-`abstract-gpt serve --workspace /path/to/project` opens the shared Serve console
-on 127.0.0.1:9124, joining it if one is already running (the standalone GPT
-service used without abstract-serve-core stays on 127.0.0.1:9127). The Conversation model picker uses the authenticated backend
+`abstract-gpt serve --host 127.0.0.1 --port 9124` opens the shared Serve console,
+joining it if one is already running. The Conversation model picker uses the authenticated backend
 catalog and changes the current conversation while preserving its ID and history.
 `GET /api/console/models` lists choices; `POST /api/console/switch` accepts
 `session_id`, `backend: "gpt"`, and `model`. Active turns must finish first.
@@ -199,4 +203,3 @@ Station combines this catalog with Claude and Hugpy in one Serve conversation.
   `gpt_state`.
 - Rollover sessions on the gpt backend are measured by serve-core's rollover
   sweep from the codex rollout (abstract-serve-core 0.1.15).
-
