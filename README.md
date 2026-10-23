@@ -203,3 +203,10 @@ Station combines this catalog with Claude and Hugpy in one Serve conversation.
   `gpt_state`.
 - Rollover sessions on the gpt backend are measured by serve-core's rollover
   sweep from the codex rollout (abstract-serve-core 0.1.15).
+
+
+## Fleet terminal compatibility release — 2026-10-22
+
+Updates the shared runtime dependency floor for the fleet terminal release. Provider entry points and existing CLI/module layouts are retained; no unpublished source-layout migration is included.
+
+The source distribution includes `debian/build.sh OUTPUT_DIR` for a standalone offline Debian CLI package. Installation creates only the provider-owned venv and CLI launcher; it does not start a service or copy credentials.
