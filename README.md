@@ -10,7 +10,7 @@ category in `abstract_toolserver`. Requires Python 3.11+, Linux (for HTTP login
 locking), and an installed Codex CLI.
 
 ```bash
-pip install -e /srv/pyit/dev/abstract_gpt
+python -m pip install abstract-gpt
 abstract-gpt oauth-status
 abstract-gpt login                    # device URL + code; approve in your browser
 abstract-gpt launch --                # new interactive conversation
