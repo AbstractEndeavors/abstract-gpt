@@ -16,12 +16,10 @@ import threading
 import time
 from pathlib import Path
 
-from .mct_archive import Archive
-from . import actions
+from abstract_serve_core.mct.mct_archive import Archive
+from ..imports.constants import (CYAN, DIM, BOLD, RESET, WHITE, PROMPT, SPIN, _FENCE_RE, _LIST_RE, SYSTEM)
+from ..configuration import actions
 
-CYAN, DIM, BOLD, RESET = "\033[36m", "\033[2m", "\033[1m", "\033[0m"
-WHITE = "\033[97m"
-PROMPT = f"{BOLD}mct>{RESET} "
 
 
 def _rl(prompt: str) -> str:
@@ -30,7 +28,6 @@ def _rl(prompt: str) -> str:
     redraws the typed line over its own start (the classic unescaped-PS1 bug)."""
     import re
     return re.sub(r"(\x1b\[[0-9;?]*[A-Za-z])", "\001\\1\002", prompt)
-SPIN = "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"
 
 
 def _term_width() -> int:
@@ -76,8 +73,6 @@ def _tool_line(name: str, inp: dict, strip_prefix: str = "") -> str:
     return name
 
 
-_FENCE_RE = re.compile(r"^\s*```\s*(\S*)\s*$")
-_LIST_RE = re.compile(r"^(\s*)([-*+]|\d+[.)])\s+")
 
 
 def _render_md(body: str, blocks: list) -> str:
@@ -141,20 +136,6 @@ def _render_md(body: str, blocks: list) -> str:
         out.extend(WHITE + c + RESET for c in code)
     return "\n".join(out)
 
-SYSTEM = """\
-You are A, the frontier seat of a hugpy Station, in the mct pointer-exchange
-test grounds. Each turn your prompt arrives as a FILE POINTER and your answer
-leaves as a FILE: Read the prompt file, Write your complete answer (markdown)
-to the response file. The operator's terminal renders the cat of both files,
-so the response file IS your visible answer — put everything there. Your chat
-reply must be exactly the single acknowledgement line you were asked for.
-Your session is resumed across turns, so you may remember earlier exchanges;
-the exchange files remain the canonical record of the conversation.
-Some prompts arrive as an explicit [B digest] of several interim messages from
-C, possibly opening with a reconcile brief about an aborted prior turn — the
-framing is part of the contract: later messages supersede earlier ones where
-they conflict, and after an abort you verify workspace state before building
-on it."""
 
 
 def _default_ws() -> Path:

@@ -6,7 +6,7 @@ import tempfile
 import threading
 import unittest
 
-from abstract_gpt.app_server import Adapter, RpcClient
+from abstract_gpt.integrations.app_server import Adapter, RpcClient
 
 
 class FakeClient:
@@ -133,7 +133,7 @@ class ScriptedClient:
 
 class ElicitationAndOutputCapTests(unittest.TestCase):
     def run_turn(self, decision=None, dangerous=False):
-        from abstract_gpt.app_server import OUTPUT_CAP
+        from abstract_gpt.integrations.app_server import OUTPUT_CAP
         client, events = ScriptedClient(), []
         adapter = Adapter(lambda **kw: client)
         def emit(e):

@@ -6,7 +6,7 @@ import tempfile
 import time
 import unittest
 from unittest.mock import patch
-from abstract_gpt import actions
+from abstract_gpt.configuration import actions
 from abstract_gpt import cli
 
 
@@ -83,7 +83,7 @@ home.mkdir(exist_ok=True)
 
     def test_launch_flags_and_status_redaction(self):
         actions.set_model('configured')
-        with patch('abstract_gpt.comms.ensure_hook'), patch('subprocess.call', return_value=7) as call:
+        with patch('abstract_gpt.integrations.comms.ensure_hook'), patch('subprocess.call', return_value=7) as call:
             self.assertEqual(actions.launch(['--model', 'explicit', 'hello'], True), 7)
             self.assertEqual(call.call_args.args[0],
                 [str(self.fake), *actions.toolserver_args(), '--dangerously-bypass-hook-trust',

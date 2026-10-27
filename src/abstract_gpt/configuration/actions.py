@@ -23,7 +23,7 @@ def codex_home():
 def binary():
     """This user's Codex: the AG_CODEX_BIN pin, else ~/.local/bin/codex, else PATH.
     When there is none, OpenAI's release binary is installed into ~/.local/bin/codex
-    (abstract_serve_core.clis) instead of failing."""
+    (abstract_serve_core.processes.clis) instead of failing."""
     candidate = Path.home() / ".local/bin/codex"
     found = os.environ.get("AG_CODEX_BIN")
     if not found and candidate.is_file():
@@ -31,13 +31,13 @@ def binary():
     if not found:
         found = shutil.which("codex")
     if not found:
-        from abstract_serve_core.clis import CliInstallError, install_codex
+        from abstract_serve_core.processes.clis import CliInstallError, install_codex
         try:
             found = install_codex()
         except CliInstallError as exc:
             raise FileNotFoundError(f"Codex CLI is missing and could not be installed: {exc}") from exc
     return found
-    from abstract_serve_core.clis import CliInstallError, ensure_codex
+    from abstract_serve_core.processes.clis import CliInstallError, ensure_codex
     try:
         _BINARY = ensure_codex()
     except CliInstallError as exc:
@@ -227,7 +227,7 @@ def login_start():
             return {"ok": True, "state": "authenticated"}
         write(root() / "login-output.txt", "")
         write(root() / "login.json", json.dumps({"state": "pending", "started": time.time()}))
-        worker = subprocess.Popen([sys.executable, "-m", "abstract_gpt.login_worker", str(lock.fileno())],
+        worker = subprocess.Popen([sys.executable, "-m", "abstract_gpt.configuration.login_worker", str(lock.fileno())],
                          env=env(), pass_fds=(lock.fileno(),), start_new_session=True,
                          stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
                          stderr=subprocess.DEVNULL)
@@ -267,9 +267,9 @@ def launch(args, execute=False):
     cfg = read_json(root() / "config.json")
     comms_enabled = cfg.get("comms_enabled", True)
     if comms_enabled:
-        from .comms import ensure_hook
+        from ..integrations.comms import ensure_hook
         ensure_hook()
-    from .rollover import install_hooks
+    from ..processes.rollover import install_hooks
     install_hooks()
     ensure_toolserver()
     command = [binary(), *toolserver_args()]
@@ -285,7 +285,7 @@ def launch(args, execute=False):
         return subprocess.call(command + args, env=env())
     proc = subprocess.Popen(command + args, env=env())
     try:
-        from .rollover import spawn
+        from ..processes.rollover import spawn
         spawn(proc.pid)
     except Exception:
         pass

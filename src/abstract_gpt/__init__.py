@@ -5,6 +5,6 @@ try:
 except Exception:
     __version__ = "0.0.0+src"
 
-from .toolset import get_toolset  # noqa: E402
+from .integrations.toolset import get_toolset  # noqa: E402
 
 __all__ = ["get_toolset"]

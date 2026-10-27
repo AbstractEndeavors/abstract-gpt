@@ -7,10 +7,10 @@ from pathlib import Path
 import socket
 import sys
 
-from . import actions
+from ..imports.constants import (HOOK_MARKER)
+from ..configuration import actions
 
 
-HOOK_MARKER = "abstract-gpt-comms"
 
 
 def _mcp_call(name, arguments):

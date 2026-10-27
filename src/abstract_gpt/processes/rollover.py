@@ -7,11 +7,11 @@ import subprocess
 import sys
 import time
 
-from . import actions
-from .comms import _mcp_call
+from ..imports.constants import (MODES)
+from ..configuration import actions
+from ..integrations.comms import _mcp_call
 
 
-MODES = ("auto", "manual", "off")
 
 
 def mode():

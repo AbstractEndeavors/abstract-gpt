@@ -3,13 +3,13 @@ requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 [project]
 name = "abstract-gpt"
-version = "0.1.27"
+version = "0.1.28"
 description = "Codex session manager: login, launch, rollover, and a shared web console via abstract-serve-core."
 readme = "README.md"
 requires-python = ">=3.11"
 authors = [{name = "jrputkey"}]
 # Serve and its provider-neutral console are owned by abstract-serve-core.
-dependencies = ["prompt_toolkit>=3.0", "abstract-serve-core>=0.1.27", "abstract-toolserver>=0.0.43,<0.1"]
+dependencies = ["hugpy-resources>=0.1.2.8,<0.2", "prompt_toolkit>=3.0", "abstract-serve-core>=0.1.27", "abstract-toolserver>=0.0.43,<0.1"]
 [project.optional-dependencies]
 mcp = []
 [project.scripts]
@@ -17,7 +17,7 @@ abstract-gpt = "abstract_gpt.cli:main"
 # `abstract-gpt serve` IS abstract-serve-core's one Serve console; this registers
 # GPT among its providers (discovered from this metadata, loaded on demand).
 [project.entry-points."abstract_serve_core.providers"]
-gpt = "abstract_serve_core.providers:gpt"
+gpt = "abstract_serve_core.console.providers:gpt"
 [tool.setuptools.packages.find]
 where = ["src"]
 [tool.pypit]

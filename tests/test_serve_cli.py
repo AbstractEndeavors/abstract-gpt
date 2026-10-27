@@ -23,7 +23,7 @@ class ServeIsTheSharedConsole(unittest.TestCase):
 
     def test_registered_as_a_serve_provider_without_requiring_claude(self):
         meta = tomllib.loads((Path(__file__).resolve().parents[1] / "pyproject.toml").read_text())["project"]
-        self.assertEqual(meta["entry-points"]["abstract_serve_core.providers"], {"gpt": "abstract_serve_core.providers:gpt"})
+        self.assertEqual(meta["entry-points"]["abstract_serve_core.providers"], {"gpt": "abstract_serve_core.console.providers:gpt"})
         self.assertFalse([d for d in meta["dependencies"] if d.startswith("abstract-claude")])
 
 

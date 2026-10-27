@@ -12,7 +12,8 @@ import subprocess
 import sys
 from pathlib import Path
 
-from . import __version__, actions
+from . import __version__
+from .configuration import actions
 
 
 def _p(obj):
@@ -39,7 +40,7 @@ def cmd_init(a):
 
 def cmd_install_cli(a):
     """Make sure this user has a working Codex (installs ~/.local/bin/codex)."""
-    from abstract_serve_core.clis import CliInstallError, ensure_codex, find
+    from abstract_serve_core.processes.clis import CliInstallError, ensure_codex, find
     had = find("codex", "AG_CODEX_BIN")
     try:
         path = ensure_codex()
@@ -114,19 +115,19 @@ def cmd_exec(a):
 
 
 def cmd_seat_report(a):
-    from .seat_report import run
+    from abstract_serve_core.processes.seat_report import run
     return run(a.seat, a.watch_pid, status_file=a.status_file or "",
                locus=a.locus or "", model=a.model or "",
                interval=a.interval, once=a.once)
 
 
 def cmd_mcp(a):
-    from abstract_serve_core.mcp import serve_mcp
+    from abstract_serve_core.integrations.mcp import serve_mcp
     serve_mcp()
 
 
 def cmd_mct(a):
-    from .mct_repl import main as mct_main
+    from .mct.mct_repl import main as mct_main
     try:
         return mct_main(sys.argv[2:])
     except KeyboardInterrupt:
@@ -137,24 +138,24 @@ def cmd_mct(a):
 
 
 def cmd_mct_backfill(a):
-    from .mct_archive import backfill_exchanges
+    from abstract_serve_core.mct.mct_archive import backfill_exchanges
     r = backfill_exchanges(a.dir, a.locus, base=a.base)
     _p(r)
     return 0 if not r.get("failed") else 1
 
 
 def cmd_tokens(a):
-    from . import token_test
+    from abstract_serve_core.accounting import token_test
     return token_test.run(a)
 
 
 def cmd_keepalive(a):
-    from . import keepalive
+    from abstract_serve_core.processes import keepalive
     return keepalive.run(a)
 
 
 def cmd_rollover(a):
-    from .comms import _mcp_call
+    from .integrations.comms import _mcp_call
     locus = a.locus or os.environ.get("HUGPY_LOCUS") or os.environ.get("EXCHANGE_LOCUS") or ""
     if not locus:
         print("rollover needs --locus or HUGPY_LOCUS", file=sys.stderr)
@@ -166,7 +167,7 @@ def cmd_rollover(a):
 
 
 def cmd_rollover_mode(a):
-    from .rollover import mode, set_mode
+    from .processes.rollover import mode, set_mode
     if not a.value or a.value == "status":
         print(mode())
         return 0
@@ -176,17 +177,17 @@ def cmd_rollover_mode(a):
 
 
 def cmd_comms(a):
-    from .comms import current
+    from .integrations.comms import current
     _p(current())
 
 
 def cmd_comms_hook(a):
-    from .comms import session_start_hook
+    from .integrations.comms import session_start_hook
     return session_start_hook()
 
 
 def cmd_hub(a):
-    from . import hub
+    from abstract_serve_core.console import hub
     hub.serve(host=a.host, port=a.port)
 
 
@@ -195,11 +196,11 @@ def main(argv=None):
 
     # Fast-path subcommands that bypass argparse (rollover hooks are latency-sensitive)
     if argv[:1] == ["rollover-hook"]:
-        from .rollover import hook_event
+        from .processes.rollover import hook_event
         hook_event()
         return 0
     if argv[:1] == ["rollover-watch"]:
-        from .rollover import run as rollover_run
+        from .processes.rollover import run as rollover_run
         p = argparse.ArgumentParser()
         p.add_argument("--pid", type=int, required=True)
         p.add_argument("--locus", required=True)
@@ -299,7 +300,7 @@ def main(argv=None):
     mb.set_defaults(fn=cmd_mct_backfill)
 
     # --- tokens / keepalive (shared, from serve-core) ---
-    from .usage_db import DEFAULT_DB
+    from abstract_serve_core.accounting.usage_db import DEFAULT_DB
     t = sub.add_parser("tokens", help="headless prompt with token/cost logging")
     t.add_argument("prompt", nargs="?")
     t.add_argument("--db", default=DEFAULT_DB)
@@ -317,7 +318,12 @@ def main(argv=None):
     t.add_argument("--all", action="store_true")
     t.set_defaults(fn=cmd_tokens)
 
-    from .keepalive import KEEPALIVE_DIR, DEFAULT_PING, DEFAULT_LEAD_S, DEFAULT_INTERVAL_S
+    from abstract_serve_core.processes.keepalive import (
+        KEEPALIVE_DIR,
+        DEFAULT_PING,
+        DEFAULT_LEAD_S,
+        DEFAULT_INTERVAL_S,
+    )
     k = sub.add_parser("keepalive",
                         help=f"keep sessions' prompt caches warm (dir: {KEEPALIVE_DIR})")
     k.add_argument("--interval", type=int, default=DEFAULT_INTERVAL_S)

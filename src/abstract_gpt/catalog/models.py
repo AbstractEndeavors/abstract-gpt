@@ -10,7 +10,7 @@ def _refresh():
     if not _lock.acquire(blocking=False):
         return
     try:
-        from .app_server import RpcClient
+        from ..integrations.app_server import RpcClient
         client = RpcClient(timeout=10)
         try:
             models, cursor = [], None

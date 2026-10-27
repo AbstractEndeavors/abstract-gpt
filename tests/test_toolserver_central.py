@@ -41,7 +41,7 @@ def _advertise(monkeypatch, tmp_path, port, token):
 
 def test_comms_call_resolves_via_discovery_and_uses_shared_client(monkeypatch, tmp_path):
     _advertise(monkeypatch, tmp_path, 7989, "tok-gpt")
-    from abstract_gpt import comms
+    from abstract_gpt.integrations import comms
     seen = []
 
     def fake_open(req, timeout=None):
@@ -65,6 +65,6 @@ def test_mcp_command_is_the_shared_bridge_with_relay(monkeypatch):
 
 def test_first_run_hook_uses_existing_endpoint(monkeypatch, tmp_path):
     _advertise(monkeypatch, tmp_path, 7988, "t")
-    from abstract_gpt import actions
+    from abstract_gpt.configuration import actions
     res = actions.ensure_toolserver(wait=0)
     assert res["url"] == "http://127.0.0.1:7988" and res["source"] == "advertised"

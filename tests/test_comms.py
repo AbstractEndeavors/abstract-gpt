@@ -6,7 +6,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from abstract_gpt import comms
+from abstract_gpt.integrations import comms
 
 
 class CommsTest(unittest.TestCase):

@@ -8,7 +8,7 @@ import time
 import unittest
 from unittest.mock import patch
 
-from abstract_gpt import mct_repl as mct
+from abstract_gpt.mct import mct_repl as mct
 
 
 class MctTest(unittest.TestCase):

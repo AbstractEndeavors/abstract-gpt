@@ -11,10 +11,9 @@ import subprocess
 import threading
 import time
 
-from . import actions
+from ..imports.constants import (ELICITATION, OUTPUT_CAP)
+from ..configuration import actions
 
-ELICITATION = "mcpServer/elicitation/request"   # codex's approval ask before an MCP tool call
-OUTPUT_CAP = 64 * 1024   # chars of one command's output the console stores (a stray `rg .` streamed 10 MB)
 
 
 class RpcClient:

@@ -65,7 +65,7 @@ required for the ChatGPT subscription login flow.
 Install in the toolserver's Python environment, then add alongside its Claude merge:
 
 ```python
-_merge_optional_toolset("abstract_gpt.toolset:get_toolset")
+_merge_optional_toolset("abstract_gpt.integrations.toolset:get_toolset")
 ```
 
 Restart the service to register these routes. They use the toolserver's existing
@@ -203,3 +203,18 @@ Station combines this catalog with Claude and Hugpy in one Serve conversation.
   `gpt_state`.
 - Rollover sessions on the gpt backend are measured by serve-core's rollover
   sweep from the codex rollout (abstract-serve-core 0.1.15).
+
+
+## Python package layout
+
+The package root holds its CLI entry points, version, and packaged assets. Implementations are grouped by responsibility:
+
+| Subpackage | Modules |
+| --- | --- |
+| `catalog/` | `models.py` |
+| `configuration/` | `actions.py`, `login_worker.py` |
+| `integrations/` | `app_server.py`, `comms.py`, `toolset.py` |
+| `mct/` | `mct_repl.py` |
+| `processes/` | `rollover.py` |
+
+Import implementations directly from these subpackages. The former flat module aliases have been removed; shared Claude and GPT helpers live in `abstract_serve_core` and callers import them there. Console provider discovery continues to use the `abstract_serve_core.providers` metadata group, with targets in `abstract_serve_core.console.providers`.

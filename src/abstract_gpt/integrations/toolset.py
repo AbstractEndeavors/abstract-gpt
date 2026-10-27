@@ -1,5 +1,5 @@
 """Optional abstract_toolserver /gpt/* category."""
-from . import actions
+from ..configuration import actions
 
 
 def get_toolset():
